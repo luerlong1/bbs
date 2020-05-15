@@ -13,6 +13,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
@@ -20,7 +21,9 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.fasterxml.jackson.core.type.TypeReference;
 
@@ -888,8 +891,8 @@ public class UserFormManageAction {
 	 * @return
 	 * @throws Exception
 	 */
-	@RequestMapping(value="/login",method=RequestMethod.POST) 
-	public String login2(ModelMap model,String userName, String password,Boolean rememberMe,String jumpUrl,
+	@RequestMapping(value="/loginUser",method=RequestMethod.GET)
+	public String loginUser(ModelMap model,String userName, String password,Boolean rememberMe,String jumpUrl,
 			RedirectAttributes redirectAttrs,
 			String token,String captchaKey,String captchaValue,
 			String thirdPartyOpenId,
@@ -897,11 +900,11 @@ public class UserFormManageAction {
 			throws Exception {
 		boolean isAjax = WebUtil.submitDataMode(request);//是否以Ajax方式提交数据
 
-		
+
 		Map<String,String> error = new HashMap<String,String>();
-		
-		
-		
+
+
+
 		if(userName == null || "".equals(userName.trim())){
 			//用户名不能为空
 			error.put("userName", ErrorView._815.name());//用户名称不能为空
@@ -912,35 +915,35 @@ public class UserFormManageAction {
 			//密码不能为空
 			error.put("password", ErrorView._816.name());//密码不能为空
 		}else{
-			if(password.trim().length() != 64){//判断是否是64位SHA256
-				error.put("password", ErrorView._801.name());//密码长度错误
-			}
+//			if(password.trim().length() != 64){//判断是否是64位SHA256
+//				error.put("password", ErrorView._801.name());//密码长度错误
+//			}
 		}
 		if(rememberMe == null){
 			rememberMe =false;
 		}
-		
-		//判断令牌
-		if(token != null && !"".equals(token.trim())){	
-			String token_sessionid = csrfTokenManage.getToken(request);//获取令牌
-			if(token_sessionid != null && !"".equals(token_sessionid.trim())){
-				if(!token_sessionid.equals(token)){
-					error.put("token", ErrorView._13.name());
-				}
-			}else{
-				error.put("token", ErrorView._12.name());
-			}
-		}else{
-			error.put("token", ErrorView._11.name());
-		}
 
-		
+		//判断令牌
+//		if(token != null && !"".equals(token.trim())){
+//			String token_sessionid = csrfTokenManage.getToken(request);//获取令牌
+//			if(token_sessionid != null && !"".equals(token_sessionid.trim())){
+//				if(!token_sessionid.equals(token)){
+//					error.put("token", ErrorView._13.name());
+//				}
+//			}else{
+//				error.put("token", ErrorView._12.name());
+//			}
+//		}else{
+//			error.put("token", ErrorView._11.name());
+//		}
+
+
 		User user = null;
 		if(error.size() == 0){
 			boolean isCaptcha = captchaManage.login_isCaptcha(userName);
-			
-			if(isCaptcha){//如果需要验证码		
-				
+
+			if(isCaptcha){//如果需要验证码
+
 				//验证验证码
 				if(captchaKey != null && !"".equals(captchaKey.trim())){
 					//增加验证码重试次数
@@ -953,7 +956,7 @@ public class UserFormManageAction {
 		    		}
 					String _captcha = captchaManage.captcha_generate(captchaKey.trim(),"");
 					if(captchaValue != null && !"".equals(captchaValue.trim())){
-		
+
 						if(_captcha != null && !"".equals(_captcha.trim())){
 							if(!_captcha.equalsIgnoreCase(captchaValue)){
 								error.put("captchaValue",ErrorView._15.name());//验证码错误
@@ -965,20 +968,20 @@ public class UserFormManageAction {
 						error.put("captchaValue",ErrorView._16.name());//请输入验证码
 					}
 					//删除验证码
-					captchaManage.captcha_delete(captchaKey.trim());	
+					captchaManage.captcha_delete(captchaKey.trim());
 				}else{
 					error.put("captchaValue", ErrorView._14.name());//验证码参数错误
 				}
-				
+
 			}
-			
+
 			if(error.size() == 0){
 				//验证用户名
 				user = userService.findUserByUserName(userName);
 				if(user != null){
-					List<UserGrade> userGradeList = userGradeService.findAllGrade_cache();	
+					List<UserGrade> userGradeList = userGradeService.findAllGrade_cache();
 					if(userGradeList != null && userGradeList.size() >0){
-						for(UserGrade userGrade : userGradeList){//取得所有等级 
+						for(UserGrade userGrade : userGradeList){//取得所有等级
 							if(user.getPoint() >= userGrade.getNeedPoint()){
 								user.setGradeId(userGrade.getId());
 								user.setGradeName(userGrade.getName());//将等级值设进等级参数里
@@ -987,15 +990,16 @@ public class UserFormManageAction {
 						}
 					}
 					//密码
-					password = SHA.sha256Hex(password.trim()+"["+user.getSalt()+"]");
-					
+//					password = SHA.sha256Hex(password.trim()+"["+user.getSalt()+"]");
+//					password = DigestUtils.md5Hex(password);
+
 					//判断密码
 					if(user.getState() >1 ){
 						//禁止用户
 						error.put("userName", ErrorView._824.name());//禁止用户
 					}else if(password.equals(user.getPassword())){
-						
-						
+
+
 						//访问令牌
 						String accessToken = UUIDUtil.getUUID32();
 						//刷新令牌
@@ -1013,32 +1017,32 @@ public class UserFormManageAction {
 						userLoginLog.setLogonTime(new Date());
 						Object new_userLoginLog = userLoginLogManage.createUserLoginLogObject(userLoginLog);
 						userService.saveUserLoginLog(new_userLoginLog);
-						
-						
-						
+
+
+
 						String openId = "";//第三方openId
 						if(thirdPartyOpenId != null && !"".equals(thirdPartyOpenId.trim())){
 							openId = thirdPartyOpenId.trim();
 							oAuthManage.addOpenId(openId,refreshToken);
 						}
-						
+
 						oAuthManage.addAccessToken(accessToken, new AccessUser(user.getId(),user.getUserName(),user.getNickname(),user.getAvatarPath(),user.getAvatarName(),user.getSecurityDigest(),rememberMe,openId));
 						oAuthManage.addRefreshToken(refreshToken, new RefreshUser(accessToken,user.getId(),user.getUserName(),user.getNickname(),user.getAvatarPath(),user.getAvatarName(),user.getSecurityDigest(),rememberMe,openId));
-						
-						
-						
+
+
+
 						//存放时间 单位/秒
 						int maxAge = 0;
 						if(rememberMe == true){
 							maxAge = WebUtil.cookieMaxAge;//默认Cookie有效期
 						}
-						
+
 						//将访问令牌添加到Cookie
 						WebUtil.addCookie(response, "cms_accessToken", accessToken, maxAge);
 						//将刷新令牌添加到Cookie
 						WebUtil.addCookie(response, "cms_refreshToken", refreshToken, maxAge);
 						AccessUserThreadLocal.set(new AccessUser(user.getId(),user.getUserName(),user.getNickname(),user.getAvatarPath(),user.getAvatarName(),user.getSecurityDigest(),rememberMe,openId));
-						
+
 					}else{
 						//密码错误
 						error.put("password", ErrorView._826.name());//密码错误
@@ -1048,9 +1052,9 @@ public class UserFormManageAction {
 					error.put("userName",  ErrorView._825.name());//用户名错误
 				}
 			}
-			
+
 		}
-		
+
 		//登录失败处理
 		if(error.size() >0){
 			//统计每分钟原来提交次数
@@ -1138,9 +1142,84 @@ public class UserFormManageAction {
 		//默认跳转
 		return "redirect:/index";
 	}
-	
-	
-	
+
+	@RequestMapping(value="/forLogin",method=RequestMethod.POST)
+	public String forLogin(ModelMap model,String userName, String password,Boolean rememberMe,
+						  HttpServletRequest request, HttpServletResponse response) throws Exception {
+		boolean isAjax = WebUtil.submitDataMode(request);//是否以Ajax方式提交数据
+
+		Map<String,String> error = new HashMap<String,String>();
+
+		User user = null;
+		if(error.size() == 0){
+
+			if(error.size() == 0){
+				//验证用户名
+				user = userService.findUserByUserName(userName);
+				if(user != null){
+					List<UserGrade> userGradeList = userGradeService.findAllGrade_cache();
+					if(userGradeList != null && userGradeList.size() >0){
+						for(UserGrade userGrade : userGradeList){//取得所有等级
+							if(user.getPoint() >= userGrade.getNeedPoint()){
+								user.setGradeId(userGrade.getId());
+								user.setGradeName(userGrade.getName());//将等级值设进等级参数里
+								break;
+							}
+						}
+					}
+					//密码
+//					password = SHA.sha256Hex(password.trim()+"["+user.getSalt()+"]");
+
+					//判断密码
+					if(user.getState() >1 ){
+						//禁止用户
+						error.put("userName", ErrorView._824.name());//禁止用户
+					}else {
+
+						//访问令牌
+						String accessToken = UUIDUtil.getUUID32();
+						//刷新令牌
+						String refreshToken = UUIDUtil.getUUID32();
+
+						//删除缓存用户状态
+						userManage.delete_userState(user.getUserName());
+
+						//写入登录日志
+						UserLoginLog userLoginLog = new UserLoginLog();
+						userLoginLog.setId(userLoginLogManage.createUserLoginLogId(user.getId()));
+						userLoginLog.setIp(IpAddress.getClientIpAddress(request));
+						userLoginLog.setUserId(user.getId());
+						userLoginLog.setTypeNumber(10);//登录
+						userLoginLog.setLogonTime(new Date());
+						Object new_userLoginLog = userLoginLogManage.createUserLoginLogObject(userLoginLog);
+						userService.saveUserLoginLog(new_userLoginLog);
+//
+//						oAuthManage.addAccessToken(accessToken, new AccessUser(user.getId(),user.getUserName(),user.getNickname(),user.getAvatarPath(),user.getAvatarName(),user.getSecurityDigest(),rememberMe,openId));
+//						oAuthManage.addRefreshToken(refreshToken, new RefreshUser(accessToken,user.getId(),user.getUserName(),user.getNickname(),user.getAvatarPath(),user.getAvatarName(),user.getSecurityDigest(),rememberMe,openId));
+//
+
+						//存放时间 单位/秒
+						int maxAge = 0;
+						//将访问令牌添加到Cookie
+						WebUtil.addCookie(response, "cms_accessToken", accessToken, maxAge);
+						//将刷新令牌添加到Cookie
+						WebUtil.addCookie(response, "cms_refreshToken", refreshToken, maxAge);
+//						AccessUserThreadLocal.set(new AccessUser(user.getId(),user.getUserName(),user.getNickname(),user.getAvatarPath(),user.getAvatarName(),user.getSecurityDigest(),rememberMe,""));
+					}
+				}
+			}
+		}
+		Map<String,Object> ajax_return = new HashMap<String,Object>();//返回
+
+			ajax_return.put("success", "true");
+			ajax_return.put("jumpUrl", "_jumpUrl");
+			ajax_return.put("systemUser", new AccessUser(user.getId(),user.getUserName(),user.getNickname(),user.getAvatarPath(),user.getAvatarName(),null,false,""));//登录用户
+
+
+		WebUtil.writeToWeb(JsonUtils.toJSONString(ajax_return), "json", response);
+		return null;
+
+	}
 	
 	
 	/**
@@ -1261,9 +1340,9 @@ public class UserFormManageAction {
 	
 	/**
 	 * 找回密码 第一步
-	 * @param jumpUrl 跳转URL
-	 * @param encryptionData 加密数据
-	 * @param secretKey 密钥
+//	 * @param jumpUrl 跳转URL
+//	 * @param encryptionData 加密数据
+//	 * @param secretKey 密钥
 	 * @param token 令牌
 	 * @param captchaKey 验证Key
 	 * @param captchaValue 验证码
