@@ -42,6 +42,9 @@ public class User implements Serializable{
 	/** 会员用户名 **/
 	@Column(length=30)
 	private String userName;
+
+	@Column(length=50)
+	private String authUserId;
 	/** 呢称 **/
 	@Column(length=50)
 	private String nickname;
@@ -210,6 +213,15 @@ public class User implements Serializable{
 	public void setRealNameAuthentication(boolean realNameAuthentication) {
 		this.realNameAuthentication = realNameAuthentication;
 	}
+
+	public String getAuthUserId() {
+		return authUserId;
+	}
+
+	public void setAuthUserId(String authUserId) {
+		this.authUserId = authUserId;
+	}
+
 	public Long getSecurityDigest() {
 		return securityDigest;
 	}

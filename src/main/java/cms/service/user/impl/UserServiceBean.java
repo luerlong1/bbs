@@ -350,6 +350,20 @@ public class UserServiceBean extends DaoSupport<User> implements UserService {
 		return null;
 		
 	}
+
+	@Transactional(readOnly=true,propagation=Propagation.NOT_SUPPORTED)
+	public User findUserByUserNameAndAuthId(String userName, String authId){
+		Query query =  em.createQuery("select o from User o where o.userName=?1 and o.authUserId = ?2");
+		//设置参数
+		query.setParameter(1, userName);
+		query.setParameter(2, authId);
+		List<User> userList = query.getResultList();
+		for(User user : userList){
+			return user;
+		}
+		return null;
+
+	}
 	/**
 	 * 根据呢称查询当前用户
 	 * @param nickname 呢称

@@ -895,7 +895,7 @@ public class UserFormManageAction {
 	public String loginUser(ModelMap model,String userName, String password,Boolean rememberMe,String jumpUrl,
 			RedirectAttributes redirectAttrs,
 			String token,String captchaKey,String captchaValue,
-			String thirdPartyOpenId,
+			String thirdPartyOpenId, String authUserId,
 			HttpServletRequest request, HttpServletResponse response)
 			throws Exception {
 		boolean isAjax = WebUtil.submitDataMode(request);//是否以Ajax方式提交数据
@@ -977,7 +977,7 @@ public class UserFormManageAction {
 
 			if(error.size() == 0){
 				//验证用户名
-				user = userService.findUserByUserName(userName);
+				user = userService.findUserByUserNameAndAuthId(userName, authUserId);
 				if(user != null){
 					List<UserGrade> userGradeList = userGradeService.findAllGrade_cache();
 					if(userGradeList != null && userGradeList.size() >0){
